@@ -3,11 +3,17 @@
 	"repositories": 
 	[{
 		"url": "https://github.com/logsol/Test-Repo", 
-		"path": "/home/logsol/projects/Test-Repo",
-		"deploy": "echo deploying"
-	}, 
-	{
-		"url": "https://github.com/logsol/Katharsis-Framework",
-		"path": "/home/logsol/projects/Katharsis-Framework"
+		"path": "<your path>",
+		"deploy": "echo deploying",
+		"test_path": "<your test location path>",
+		"test": "echo excuting test",
+		"email": {
+			"host": "smtp.gmail.com",
+			"port": 587,
+			"user": "yourname@gmail.com",
+			"password": "password",
+			"use_tls": true,
+			"send_to": "recipients" 
+		}
 	}]
 }

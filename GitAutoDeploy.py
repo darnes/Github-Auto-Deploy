@@ -2,7 +2,9 @@
 
 import json, urlparse, sys, os
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from subprocess import call
+from subprocess import call, Popen, PIPE, STDOUT
+import smtplib
+from email.mime.text import MIMEText
 
 class GitAutoDeploy(BaseHTTPRequestHandler):
 
@@ -36,6 +38,28 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
         urls = self.parseRequest()
         for url in urls:
             path = self.getMatchingPath(url)
+            self.runDeploy(path)
+
+    def runDeploy(self, path):
+        config = self.getConfig()
+        rep_conf = None
+        for repository in config['repositories']:
+            if(repository['path'] == path):
+                rep_conf = repository
+                break
+        if rep_conf is None:
+            return
+        
+        if 'test_path' in rep_conf and 'test' in rep_conf:
+            #self.pull(rep_conf['test_path'])
+            if self.run_test(rep_conf['test_path'],
+                             rep_conf['test'],
+                             rep_conf.get('email', None)):
+                print 'pulling to live and deploying'
+                #self.pull(path)
+                if 'deploy' in rep_conf:
+                    self.deploy(path, rep_conf['deploy'])
+        else:
             self.pull(path)
             self.deploy(path)
 
@@ -60,21 +84,60 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
 
+    def report_test_results(self, res, repor_contents,
+                            mail_conf=None):
+        if mail_conf is None:
+            print repor_contents
+        else:
+            
+            msg = MIMEText(repor_contents)
+            msg['Subject'] = 'Auto pull test result: %s' % str(res)
+            msg['From'] = mail_conf['user']
+            msg['To'] = mail_conf['send_to']
+            
+            s = smtplib.SMTP(mail_conf['host'],
+                             mail_conf['port']) #local_hostname=DNS_NAME.get_fqdn())
+            try:
+                if mail_conf['use_tls']:
+                    s.ehlo()
+                    s.starttls()
+                    s.ehlo()
+                if 'user' in mail_conf and 'password' in mail_conf:
+                    s.login(mail_conf['user'],
+                            mail_conf['password'])
+                s.sendmail(mail_conf['user'],
+                           mail_conf['send_to'],
+                           msg.as_string())
+                s.quit()
+            except Exception as exc:
+                print 'Problems mail sending:', exc
+        print repor_contents
+        print 'report mailed'
+ 
+
+    def run_test(self, path, test_command, email_conf=None):
+        if(not self.quiet):
+            print "\nRunning test."
+        cmd = 'cd "' + path + '" && ' + test_command
+        p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE,
+                  stderr=STDOUT, close_fds=True)
+        call_res = p.wait()
+        output = p.stdout.read()
+        self.report_test_results(call_res == 0, output, email_conf)
+        return call_res == 0
+
+
     def pull(self, path):
         if(not self.quiet):
             print "\nPost push request received"
             print 'Updating ' + path
         call(['cd "' + path + '" && git pull'], shell=True)
 
-    def deploy(self, path):
-        config = self.getConfig()
-        for repository in config['repositories']:
-            if(repository['path'] == path):
-                if 'deploy' in repository:
-                     if(not self.quiet):
-                         print 'Executing deploy command'
-                     call(['cd "' + path + '" && ' + repository['deploy']], shell=True)
-                break
+    def deploy(self, path, deploy_command):
+        if(not self.quiet):
+            print 'Executing deploy command'
+        call(['cd "' + path + '" && ' + deploy_command], shell=True)
+
 
 def main():
     try:
