@@ -51,12 +51,12 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
             return
         
         if 'test_path' in rep_conf and 'test' in rep_conf:
-            #self.pull(rep_conf['test_path'])
+            self.pull(rep_conf['test_path'])
             if self.run_test(rep_conf['test_path'],
                              rep_conf['test'],
                              rep_conf.get('email', None)):
                 print 'pulling to live and deploying'
-                #self.pull(path)
+                self.pull(path)
                 if 'deploy' in rep_conf:
                     self.deploy(path, rep_conf['deploy'])
         else:
