@@ -86,10 +86,8 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
 
     def report_test_results(self, res, repor_contents,
                             mail_conf=None):
-        if mail_conf is None:
-            print repor_contents
-        else:
-            
+        print repor_contents
+        if mail_conf is not None:
             msg = MIMEText(repor_contents)
             msg['Subject'] = 'Auto pull test result: %s' % str(res)
             msg['From'] = mail_conf['user']
@@ -111,8 +109,7 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
                 s.quit()
             except Exception as exc:
                 print 'Problems mail sending:', exc
-            print repor_contents
-        print 'report mailed'
+            print '\nReport mailed.'
  
 
     def run_test(self, path, test_command, email_conf=None):
