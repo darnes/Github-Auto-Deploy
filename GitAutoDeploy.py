@@ -111,7 +111,7 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
                 s.quit()
             except Exception as exc:
                 print 'Problems mail sending:', exc
-        print repor_contents
+            print repor_contents
         print 'report mailed'
  
 
