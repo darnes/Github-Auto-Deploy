@@ -61,7 +61,8 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
                     self.deploy(path, rep_conf['deploy'])
         else:
             self.pull(path)
-            self.deploy(path)
+            if 'deploy' in rep_conf:
+                self.deploy(path, rep_conf['deploy'])
 
     def parseRequest(self):
         length = int(self.headers.getheader('content-length'))
